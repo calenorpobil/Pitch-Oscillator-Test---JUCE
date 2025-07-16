@@ -22,6 +22,8 @@ public:
     void releaseResources() override;
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
+    float calculateSmoothedFrequency(int sample, int totalSamples);
+
     bool hasEditor() const override { return true; }
     juce::AudioProcessorEditor* createEditor() override;
 
@@ -50,6 +52,11 @@ private:
     juce::SmoothedValue<float> smoothedMaxFreq{ 500.0f };
     juce::SmoothedValue<float> smoothedLfoSpeed{ 0.5f };
     juce::SmoothedValue<float> smoothedGain{ 0.75f };  // Volumen al 75% por defecto
+
+    // Filtro anti-aliasing
+    juce::dsp::ProcessorDuplicator<
+        juce::dsp::IIR::Filter<float>,
+        juce::dsp::IIR::Coefficients<float>> antiAliasingFilter;
 
 
     bool oversamplingEnabled = true;  // Habilitar/deshabilitar oversampling

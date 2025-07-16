@@ -19,10 +19,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout SirenAudioProcessor::createP
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "maxFreq", "Maximum Frequency", juce::NormalisableRange<float>(50.0f, 2000.0f, 1.0f), 500.0f));
-    
-    // Nuevo parámetro para el volumen (75% por defecto)
+
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "gain", "Volume", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.75f));
+
+    // Nuevo parámetro para el oversampling
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "oversampling", "Oversampling", true));
 
     return { params.begin(), params.end() };
 }
@@ -36,13 +39,20 @@ void SirenAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         getTotalNumOutputChannels(),
         2,  // 2 etapas = 4x oversampling
         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
-        false
+        true // Habilita filtrado adicional
     ));
     oversampler->initProcessing(static_cast<size_t>(samplesPerBlock));
 
     // Configurar osciladores
     auto oversampledRate = sampleRate * oversampler->getOversamplingFactor();
     auto maxBlockSize = static_cast<juce::uint32>(samplesPerBlock * oversampler->getOversamplingFactor());
+
+    // Configurar filtro anti-aliasing
+    *antiAliasingFilter.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(
+        oversampledRate,
+        currentSampleRate * 0.45f  // Frecuencia de corte al 45% de Nyquist
+    );
+    antiAliasingFilter.prepare({ oversampledRate, maxBlockSize, static_cast<juce::uint32>(getTotalNumOutputChannels()) });
 
     // Configurar LFO (sinusoidal)
     lfoOscillator.initialise([](float x) { return std::sin(x); });
@@ -58,7 +68,7 @@ void SirenAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mainOscillator.prepare({
         oversampledRate,
         maxBlockSize,
-        static_cast<juce::uint32>(getTotalNumOutputChannels())  // Conversión segura
+        static_cast<juce::uint32>(getTotalNumOutputChannels())
         });
     mainOscillator.setFrequency(500.0f);
 
@@ -68,6 +78,9 @@ void SirenAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     smoothedMaxFreq.reset(currentSampleRate, rampTimeSec);
     smoothedLfoSpeed.reset(currentSampleRate, rampTimeSec);
     smoothedGain.reset(currentSampleRate, rampTimeSec);
+
+    // Obtener estado inicial del oversampling
+    oversamplingEnabled = apvts->getRawParameterValue("oversampling")->load();
 }
 
 void SirenAudioProcessor::releaseResources()
@@ -75,63 +88,90 @@ void SirenAudioProcessor::releaseResources()
     oversampler->reset();
     lfoOscillator.reset();
     mainOscillator.reset();
+    antiAliasingFilter.reset();
 }
 
 void SirenAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
 {
-    // Actualizar valores suavizados
+    // 1. Actualizar estado del oversampling
+    oversamplingEnabled = apvts->getRawParameterValue("oversampling")->load();
+    const float rawGain = apvts->getRawParameterValue("gain")->load();
+
+    //Gestión de ganancia
+    const float targetGain = juce::Decibels::decibelsToGain(rawGain * 100.0f - 30.0f); // Rango útil: -30dB a +20dB
+    smoothedGain.setTargetValue(targetGain);
+
+    // 2. Actualizar valores suavizados
     smoothedMinFreq.setTargetValue(apvts->getRawParameterValue("minFreq")->load());
     smoothedMaxFreq.setTargetValue(apvts->getRawParameterValue("maxFreq")->load());
     smoothedLfoSpeed.setTargetValue(apvts->getRawParameterValue("lfoSpeed")->load());
     smoothedGain.setTargetValue(apvts->getRawParameterValue("gain")->load());
 
-    // Procesamiento con oversampling
+    // 3. Procesamiento con oversampling
     juce::dsp::AudioBlock<float> block(buffer);
-    juce::dsp::AudioBlock<float> oversampledBlock;
+    juce::dsp::AudioBlock<float> osBlock = block;
 
     if (oversamplingEnabled) {
-        oversampledBlock = oversampler->processSamplesUp(block);
-    }
-    else {
-        oversampledBlock = block;
+        osBlock = oversampler->processSamplesUp(block);
     }
 
-    const auto osSampleRate = currentSampleRate * oversampler->getOversamplingFactor();
-    const size_t osNumSamples = oversampledBlock.getNumSamples();
+    const auto osSampleRate = currentSampleRate * (oversamplingEnabled ? oversampler->getOversamplingFactor() : 1);
+    const int osNumSamples = osBlock.getNumSamples();
 
-    // Buffer para procesamiento mono del LFO
+    // 4. Procesar LFO (mono)
     juce::AudioBuffer<float> lfoBuffer(1, osNumSamples);
-
-    // Procesar LFO (mono)
     for (int sample = 0; sample < osNumSamples; ++sample) {
         lfoBuffer.setSample(0, sample, lfoOscillator.processSample(0.0f));
         lfoOscillator.setFrequency(smoothedLfoSpeed.getNextValue());
     }
 
-    // Procesar oscilador principal (por canal)
-    for (int channel = 0; channel < oversampledBlock.getNumChannels(); ++channel) {
-        auto* channelData = oversampledBlock.getChannelPointer(channel);
+    // 5. Procesar oscilador principal
+    for (int channel = 0; channel < osBlock.getNumChannels(); ++channel)
+    {
+        auto* channelData = osBlock.getChannelPointer(channel);
 
-        for (int sample = 0; sample < osNumSamples; ++sample) {
-            // Calcular frecuencia actual
-            const float minFreq = smoothedMinFreq.getNextValue();
-            const float maxFreq = smoothedMaxFreq.getNextValue();
-            const float lfoValue = lfoBuffer.getSample(0, sample);
-            const float currentFreq = minFreq + (maxFreq - minFreq) * (0.5f + 0.5f * lfoValue);
-
-            // Actualizar frecuencia del oscilador principal
+        for (int sample = 0; sample < osNumSamples; ++sample)
+        {
+            // Cálculo de frecuencia con suavizado adicional
+            const float currentFreq = calculateSmoothedFrequency(sample, osNumSamples);
             mainOscillator.setFrequency(currentFreq);
 
-            // Procesar muestra
+            // Procesamiento con wave shaping suave
+            float sampleValue = mainOscillator.processSample(0.0f);
+            sampleValue = std::tanh(sampleValue * 0.8f); // Soft clipping
+
+            // Aplicación de ganancia con protección contra clipping
             const float gain = smoothedGain.getNextValue();
-            channelData[sample] = gain * mainOscillator.processSample(0.0f);
+            channelData[sample] = juce::jlimit(-0.95f, 0.95f, sampleValue * gain);
         }
     }
 
-    // Downsampling
+    if (!oversamplingEnabled) {
+        *antiAliasingFilter.state = *juce::dsp::IIR::Coefficients<float>::makeLowPass(
+            currentSampleRate,
+            currentSampleRate * 0.45f
+        );
+        antiAliasingFilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+    }
+
+    // 6. Aplicar filtro anti-aliasing si está habilitado el oversampling
     if (oversamplingEnabled) {
+        antiAliasingFilter.process(juce::dsp::ProcessContextReplacing<float>(osBlock));
         oversampler->processSamplesDown(block);
     }
+}
+
+float SirenAudioProcessor::calculateSmoothedFrequency(int sample, int totalSamples)
+{
+    const float minFreq = smoothedMinFreq.getNextValue();
+    const float maxFreq = smoothedMaxFreq.getNextValue();
+    const float lfoValue = lfoOscillator.processSample(0.0f);
+
+    // Suavizado adicional para evitar saltos bruscos
+    const float normalizedPos = sample / static_cast<float>(totalSamples);
+    const float frequency = minFreq + (maxFreq - minFreq) * (0.5f + 0.5f * lfoValue);
+
+    return frequency * (1.0f - normalizedPos) + frequency * normalizedPos;
 }
 
 juce::AudioProcessorEditor* SirenAudioProcessor::createEditor()
