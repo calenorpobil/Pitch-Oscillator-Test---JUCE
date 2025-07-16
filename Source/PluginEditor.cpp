@@ -3,50 +3,47 @@
 SirenAudioProcessorEditor::SirenAudioProcessorEditor(SirenAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    // Configuración del slider de velocidad
-    lfoSpeedSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    lfoSpeedSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    lfoSpeedSlider.setRange(0.1, 5.0, 0.01);  // Coincide con el rango del parámetro
-    addAndMakeVisible(lfoSpeedSlider);
+    // Configuración común para sliders
+    auto setupSlider = [this](juce::Slider& slider, juce::Label& label,
+        const juce::String& text, const juce::String& paramId,
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>& attachment)
+        {
+            slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+            slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
+            addAndMakeVisible(slider);
 
-    lfoSpeedLabel.setText("Speed (Hz)", juce::dontSendNotification);
-    lfoSpeedLabel.attachToComponent(&lfoSpeedSlider, false);
-    lfoSpeedLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(lfoSpeedLabel);
+            label.setText(text, juce::dontSendNotification);
+            label.attachToComponent(&slider, false);
+            label.setJustificationType(juce::Justification::centred);
+            addAndMakeVisible(label);
 
+            attachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
+                audioProcessor.getState(), paramId, slider));
+        };
 
-    // Configurar sliders
-    minFreqSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    minFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(minFreqSlider);
+    // Configurar sliders existentes
+    setupSlider(minFreqSlider, minLabel, "Min Pitch (Hz)", "minFreq", minFreqAttachment);
+    setupSlider(maxFreqSlider, maxLabel, "Max Pitch (Hz)", "maxFreq", maxFreqAttachment);
+    setupSlider(lfoSpeedSlider, lfoSpeedLabel, "Speed (Hz)", "lfoSpeed", lfoSpeedAttachment);
 
-    maxFreqSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    maxFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    addAndMakeVisible(maxFreqSlider);
+    // Configurar nuevo slider de volumen
+    setupSlider(gainSlider, gainLabel, "Volume", "gain", gainAttachment);
+    gainSlider.setTextValueSuffix(" %");
+    gainSlider.setNumDecimalPlacesToDisplay(0);
+    gainSlider.textFromValueFunction = [](double value) {
+        return juce::String(static_cast<int>(value * 100));
+        };
 
-    // Configurar labels
-    minLabel.setText("Minimum Pitch (Hz)", juce::dontSendNotification);
-    minLabel.attachToComponent(&minFreqSlider, false);
-    minLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(minLabel);
+    // Configurar botón de oversampling
+    oversamplingToggle.setButtonText("Oversampling 4x");
+    oversamplingToggle.setToggleState(true, juce::dontSendNotification);
+    oversamplingToggle.setColour(juce::ToggleButton::tickColourId, juce::Colours::lightgreen);
+    addAndMakeVisible(oversamplingToggle);
 
-    maxLabel.setText("Maximum Pitch (Hz)", juce::dontSendNotification);
-    maxLabel.attachToComponent(&maxFreqSlider, false);
-    maxLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(maxLabel);
+    oversamplingAttachment.reset(new juce::AudioProcessorValueTreeState::ButtonAttachment(
+        audioProcessor.getState(), "oversampling", oversamplingToggle));
 
-    // Vincular sliders a partros (CORRECCIN CLAVE)
-    minFreqAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
-        audioProcessor.getState(), "minFreq", minFreqSlider));
-
-    maxFreqAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
-        audioProcessor.getState(), "maxFreq", maxFreqSlider));
-
-    lfoSpeedAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
-        audioProcessor.getState(),
-        "lfoSpeed", lfoSpeedSlider));
-
-    setSize(400, 250);
+    setSize(600, 300);
 }
 
 SirenAudioProcessorEditor::~SirenAudioProcessorEditor() {}
@@ -54,15 +51,34 @@ SirenAudioProcessorEditor::~SirenAudioProcessorEditor() {}
 void SirenAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
+    g.setColour(juce::Colours::white);
+    g.setFont(15.0f);
+    g.drawFittedText("Siren Synthesizer", getLocalBounds().removeFromTop(30),
+        juce::Justification::centred, 1);
 }
 
 void SirenAudioProcessorEditor::resized()
 {
-    const int margin = 20;
-    const int sliderWidth = 150;
-    const int sliderHeight = 150;
+    const int margin = 10;
+    const int sliderWidth = 100;
+    const int sliderHeight = 100;
+    const int toggleHeight = 30;
 
-    minFreqSlider.setBounds(margin, 40, sliderWidth, sliderHeight);
-    maxFreqSlider.setBounds(getWidth() - sliderWidth - margin, 40, sliderWidth, sliderHeight);
-    lfoSpeedSlider.setBounds(getWidth() / 2 - sliderWidth / 2, 40, sliderWidth, sliderWidth);
+    juce::FlexBox flexBox;
+    flexBox.flexDirection = juce::FlexBox::Direction::row;
+    flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
+    flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
+    flexBox.alignItems = juce::FlexBox::AlignItems::center;
+
+    // Añadir controles
+    flexBox.items.add(juce::FlexItem(minFreqSlider).withWidth(sliderWidth).withHeight(sliderHeight).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(maxFreqSlider).withWidth(sliderWidth).withHeight(sliderHeight).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(lfoSpeedSlider).withWidth(sliderWidth).withHeight(sliderHeight).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(gainSlider).withWidth(sliderWidth).withHeight(sliderHeight).withMargin(margin));
+
+    // Diseñar controles
+    flexBox.performLayout(getLocalBounds().reduced(margin).removeFromTop(250));
+
+    // Posicionar botón de oversampling
+    oversamplingToggle.setBounds(getWidth() - 150, getHeight() - 35, 140, toggleHeight);
 }

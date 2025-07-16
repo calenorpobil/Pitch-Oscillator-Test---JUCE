@@ -34,10 +34,25 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState> apvts;
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
 
+    // Osciladores DSP
+    juce::dsp::Oscillator<float> lfoOscillator;  // Oscilador LFO
+    juce::dsp::Oscillator<float> mainOscillator; // Oscilador principal
+
+    // Sistema de oversampling
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampler;
+
     float lfoPhase = 0.0f;
-    float squarePhase = 0.0f;
+    float oscillatorPhase = 0.0f;
     double currentSampleRate = 44100.0;
-    const float lfoFreq = 0.5f;
+    
+    // Parámetros suavizados
+    juce::SmoothedValue<float> smoothedMinFreq{ 500.0f };
+    juce::SmoothedValue<float> smoothedMaxFreq{ 500.0f };
+    juce::SmoothedValue<float> smoothedLfoSpeed{ 0.5f };
+    juce::SmoothedValue<float> smoothedGain{ 0.75f };  // Volumen al 75% por defecto
+
+
+    bool oversamplingEnabled = true;  // Habilitar/deshabilitar oversampling
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SirenAudioProcessor)
 };
