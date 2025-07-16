@@ -46,6 +46,9 @@ private:
     float lfoPhase = 0.0f;
     float oscillatorPhase = 0.0f;
     double currentSampleRate = 44100.0;
+    float mainPhase = 0.0f;
+    float currentMainFreq = 500.0f;
+    double lastSampleRate = 0.0;
     
     // Parámetros suavizados
     juce::SmoothedValue<float> smoothedMinFreq{ 500.0f };
