@@ -1,8 +1,26 @@
+/*
+  ==============================================================================
+
+    This file contains the basic framework code for a JUCE plugin editor.
+
+  ==============================================================================
+*/
+
+#include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-SirenAudioProcessorEditor::SirenAudioProcessorEditor(SirenAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+//==============================================================================
+TapSynthAudioProcessorEditor::TapSynthAudioProcessorEditor (TapSynthAudioProcessor& p)
+    : AudioProcessorEditor (&p), audioProcessor (p)
 {
+<<<<<<< HEAD
+
+    // Configuracion del slider de velocidad
+    lfoSpeedSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    lfoSpeedSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
+    lfoSpeedSlider.setRange(0.1, 5.0, 0.01);  // Coincide con el rango del parmetro
+    addAndMakeVisible(lfoSpeedSlider);
+=======
     // Configuración común para sliders
     auto setupSlider = [this](juce::Slider& slider, juce::Label& label,
         const juce::String& text, const juce::String& paramId,
@@ -11,6 +29,7 @@ SirenAudioProcessorEditor::SirenAudioProcessorEditor(SirenAudioProcessor& p)
             slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
             slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
             addAndMakeVisible(slider);
+>>>>>>> 1df56f85feed69e1db2e64bbe0578cc1b23ab7aa
 
             label.setText(text, juce::dontSendNotification);
             label.attachToComponent(&slider, false);
@@ -43,12 +62,30 @@ SirenAudioProcessorEditor::SirenAudioProcessorEditor(SirenAudioProcessor& p)
     oversamplingAttachment.reset(new juce::AudioProcessorValueTreeState::ButtonAttachment(
         audioProcessor.getState(), "oversampling", oversamplingToggle));
 
+<<<<<<< HEAD
+    // Vincular sliders a partros (CORRECCIN CLAVE)
+    minFreqAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
+        audioProcessor.getState(), "minFreq", minFreqSlider));
+
+    maxFreqAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
+        audioProcessor.getState(), "maxFreq", maxFreqSlider));
+
+    lfoSpeedAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
+        audioProcessor.getState(),
+        "lfoSpeed", lfoSpeedSlider));
+
+    setSize (400, 300);
+=======
     setSize(600, 300);
+>>>>>>> 1df56f85feed69e1db2e64bbe0578cc1b23ab7aa
 }
 
-SirenAudioProcessorEditor::~SirenAudioProcessorEditor() {}
+TapSynthAudioProcessorEditor::~TapSynthAudioProcessorEditor()
+{
+}
 
-void SirenAudioProcessorEditor::paint(juce::Graphics& g)
+//==============================================================================
+void TapSynthAudioProcessorEditor::paint (juce::Graphics& g)
 {
     g.fillAll(juce::Colours::darkgrey);
     g.setColour(juce::Colours::white);
@@ -57,13 +94,19 @@ void SirenAudioProcessorEditor::paint(juce::Graphics& g)
         juce::Justification::centred, 1);
 }
 
-void SirenAudioProcessorEditor::resized()
+void TapSynthAudioProcessorEditor::resized()
 {
     const int margin = 10;
     const int sliderWidth = 100;
     const int sliderHeight = 100;
     const int toggleHeight = 30;
 
+<<<<<<< HEAD
+    minFreqSlider.setBounds(margin, 40, sliderWidth, sliderHeight);
+    maxFreqSlider.setBounds(getWidth() - sliderWidth - margin, 40, sliderWidth, sliderHeight);
+    lfoSpeedSlider.setBounds(getWidth() / 2 - sliderWidth / 2, 40, sliderWidth, sliderWidth);
+}
+=======
     juce::FlexBox flexBox;
     flexBox.flexDirection = juce::FlexBox::Direction::row;
     flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
@@ -82,3 +125,4 @@ void SirenAudioProcessorEditor::resized()
     // Posicionar botón de oversampling
     oversamplingToggle.setBounds(getWidth() - 150, getHeight() - 35, 140, toggleHeight);
 }
+>>>>>>> 1df56f85feed69e1db2e64bbe0578cc1b23ab7aa

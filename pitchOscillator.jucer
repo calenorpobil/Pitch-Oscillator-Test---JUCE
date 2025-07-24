@@ -54,5 +54,26 @@
         <MODULEPATH id="juce_dsp" path="../../../../../Downloads/juce-8.0.8-windows/JUCE/modules"/>
       </MODULEPATHS>
     </VS2022>
+    <ANDROIDSTUDIO targetFolder="Builds/Android">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_devices" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_formats" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_utils" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_core" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_data_structures" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_dsp" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_events" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_graphics" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_basics" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_extra" path="C:\Users\Carlos\Documents\JUCE\modules"/>
+      </MODULEPATHS>
+    </ANDROIDSTUDIO>
   </EXPORTFORMATS>
 </JUCERPROJECT>
