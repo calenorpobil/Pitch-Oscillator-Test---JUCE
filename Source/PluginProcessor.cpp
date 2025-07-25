@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "SynthParameters.h"
 
 //==============================================================================
 TapSynthAudioProcessor::TapSynthAudioProcessor()
@@ -42,14 +43,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout TapSynthAudioProcessor::crea
         juce::NormalisableRange<float>(0.1f, 5.0f, 0.01f),  // Rango: 0.1Hz a 5Hz
         0.5f));  // Valor por defecto: 0.5Hz (ciclo cada 2 segundos)
 
-
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "minFreq", "Minimum Frequency",
-        juce::NormalisableRange<float>(50.0f, 2000.0f, 1.0f), 500.0f));
+        juce::NormalisableRange<float>(50.0f, 4000.0f, 1.0f), 500.0f));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "maxFreq", "Maximum Frequency",
-        juce::NormalisableRange<float>(50.0f, 2000.0f, 1.0f), 500.0f));
+        juce::NormalisableRange<float>(50.0f, 4000.0f, 1.0f), 500.0f));
 
     return { params.begin(), params.end() };
 }
@@ -119,8 +119,6 @@ void TapSynthAudioProcessor::changeProgramName (int index, const juce::String& n
 //==============================================================================
 void TapSynthAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-
-
     synth.setCurrentPlaybackSampleRate(sampleRate);
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
@@ -173,15 +171,16 @@ bool TapSynthAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts)
 
 void TapSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    const float minFreq = apvts->getRawParameterValue("minFreq")->load();
-    const float maxFreq = apvts->getRawParameterValue("maxFreq")->load();
-    const float lfoSpeed = apvts->getRawParameterValue("lfoSpeed")->load();
+    minFreq = apvts->getRawParameterValue("minFreq")->load();
+    maxFreq = apvts->getRawParameterValue("maxFreq")->load();
+    lfoSpeed = apvts->getRawParameterValue("lfoSpeed")->load();
 
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
     const int numSamples = buffer.getNumSamples();
+    float currentFreq;
     
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     {
@@ -189,6 +188,10 @@ void TapSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         
         for (int i = 0; i < numSamples; ++i)
         {
+
+            juce::Synthesiser& sint = synth;
+
+                       
             
             // Velocidad del cambio de pitch
             lfoPhase += lfoSpeed / currentSampleRate;  
@@ -203,7 +206,7 @@ void TapSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
 
             // 2. Calcular frecuencia actual
             const float lfoValue = std::sin(2.0f * juce::MathConstants<float>::pi * lfoPhase);
-            const float currentFreq = minFreq + (maxFreq - minFreq) * (0.5f + 0.5f * lfoValue);
+            currentFreq = minFreq + (maxFreq - minFreq) * (0.5f + 0.5f * lfoValue);
 
             // 3. Generar onda cuadrada
             squarePhase += currentFreq / currentSampleRate;
@@ -217,7 +220,13 @@ void TapSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     }
 
     
-        
+    for (int i = 0; i < synth.getNumVoices(); ++i)
+    {
+        if (auto* voice = dynamic_cast<SynthVoice*>(synth.getVoice(i)))
+        {
+            voice->updateParams(*apvts);
+        }
+    }
 
     synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }

@@ -28,19 +28,23 @@ public:
     void stopNote(float velocity, bool allowTailOff) override;
     void controllerMoved(int controllerNumber, int newControllerValue) override;
     void pitchWheelMoved(int newPitchWheelValue) override;
-    void renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int startSample, int numSamples) override;
     
+    void updateParams(const juce::AudioProcessorValueTreeState& apvts);
+
     void prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels);
-
-
+    void renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int startSample, int numSamples) override;
 
 private:
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParams;
     juce::AudioBuffer<float> synthBuffer;
 
+    std::atomic<float>* lfoSpeed = nullptr;
+    std::atomic<float>* minFreq = nullptr;
+    std::atomic<float>* maxFreq = nullptr;
 
-    juce::dsp::Oscillator<float> osc{ [](float x) { return x < 0.0f ? -1.0f : 1.0f; } };
+
+    juce::dsp::Oscillator<float> osc{ [](float x) { return std::sin(x); } };
     juce::dsp::Gain<float> gain;
     // return std::sin(x); } };                           Sin wave oscillator
     // return x < 0.0f ? -1.0f : 1.0f; } };               Square wave oscillator
@@ -51,9 +55,6 @@ private:
     float squarePhase = 0.0f;
     double currentSampleRate = 44100.0;
     const float lfoFreq = 115.5f;
-    const float minFreq = 20.0f;
-    const float maxFreq = 400.0f;
-    const float lfoSpeed = 411.0f;
 
     bool isPrepared{ false };
 };

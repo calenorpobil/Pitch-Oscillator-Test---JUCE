@@ -30,7 +30,7 @@ TapSynthAudioProcessorEditor::TapSynthAudioProcessorEditor(TapSynthAudioProcesso
     lfoSpeedSlider.setRange(0.1, 5.0, 0.01);  // Coincide con el rango del parmetro
     addAndMakeVisible(lfoSpeedSlider);
 
-    lfoSpeedLabel.setText("Speed (Hz)", juce::dontSendNotification);
+    lfoSpeedLabel.setText("Speed", juce::dontSendNotification);
     lfoSpeedLabel.attachToComponent(&lfoSpeedSlider, false);
     lfoSpeedLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(lfoSpeedLabel);

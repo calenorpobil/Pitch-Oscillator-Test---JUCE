@@ -12,6 +12,7 @@
 #include "SynthSound.h"
 #include "SynthVoice.h"
 
+
 //==============================================================================
 /**
 */
@@ -73,6 +74,11 @@ private:
     float squarePhase = 0.0f;
     double currentSampleRate = 44100.0;
     const float lfoFreq = 0.5f;
+
+    float minFreq;
+    float maxFreq;
+    float lfoSpeed;
+
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TapSynthAudioProcessor)
