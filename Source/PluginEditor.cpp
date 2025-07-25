@@ -10,9 +10,19 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-TapSynthAudioProcessorEditor::TapSynthAudioProcessorEditor (TapSynthAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
-{
+TapSynthAudioProcessorEditor::TapSynthAudioProcessorEditor(TapSynthAudioProcessor& p)
+    : AudioProcessorEditor(&p), audioProcessor(p) {
+
+    // Configuracion del slider de ganancia
+    gainSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
+    gainSlider.setRange(0.1, 5.0, 0.01);  // Coincide con el rango del parmetro
+    addAndMakeVisible(gainSlider);
+
+    gainLabel.setText("Gain", juce::dontSendNotification);
+    gainLabel.attachToComponent(&gainSlider, false);
+    gainLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(gainLabel);
 
     // Configuracion del slider de velocidad
     lfoSpeedSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
@@ -56,6 +66,10 @@ TapSynthAudioProcessorEditor::TapSynthAudioProcessorEditor (TapSynthAudioProcess
     lfoSpeedAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
         audioProcessor.getState(),
         "lfoSpeed", lfoSpeedSlider));
+
+    gainAttachment.reset(new juce::AudioProcessorValueTreeState::SliderAttachment(
+        audioProcessor.getState(),
+        "gain", gainSlider));
 
     setSize (400, 300);
 }

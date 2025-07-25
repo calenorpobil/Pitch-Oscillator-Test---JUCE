@@ -31,19 +31,29 @@ public:
     void renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int startSample, int numSamples) override;
     
     void prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels);
-    //bool shouldNoteBeRetained() const override { return true; } 
+
+
 
 private:
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParams;
     juce::AudioBuffer<float> synthBuffer;
-    
+
 
     juce::dsp::Oscillator<float> osc{ [](float x) { return x < 0.0f ? -1.0f : 1.0f; } };
     juce::dsp::Gain<float> gain;
     // return std::sin(x); } };                           Sin wave oscillator
     // return x < 0.0f ? -1.0f : 1.0f; } };               Square wave oscillator
     // return x / juce::MathConstants<float>::pi; } };    Saw wave oscillator
+
+
+    float lfoPhase = 0.0f;
+    float squarePhase = 0.0f;
+    double currentSampleRate = 44100.0;
+    const float lfoFreq = 115.5f;
+    const float minFreq = 20.0f;
+    const float maxFreq = 400.0f;
+    const float lfoSpeed = 411.0f;
 
     bool isPrepared{ false };
 };

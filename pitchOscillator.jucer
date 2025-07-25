@@ -4,6 +4,7 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="QdZWvD" name="pitchOscillator">
     <GROUP id="{2CEBAAD9-201A-B937-073F-DA7C294C89A5}" name="Source">
+      <FILE id="ensthK" name="GlobalNames.h" compile="0" resource="0" file="Source/GlobalNames.h"/>
       <FILE id="G9T5T1" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="lbM8Xa" name="PluginProcessor.h" compile="0" resource="0"

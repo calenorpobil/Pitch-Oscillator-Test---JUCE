@@ -35,11 +35,14 @@ private:
     juce::Label maxLabel;
     juce::Slider lfoSpeedSlider;
     juce::Label lfoSpeedLabel;
+    juce::Slider gainSlider;
+    juce::Label gainLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lfoSpeedAttachment;
 
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> minFreqAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> maxFreqAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TapSynthAudioProcessorEditor)

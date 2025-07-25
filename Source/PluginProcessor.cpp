@@ -189,6 +189,7 @@ void TapSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         
         for (int i = 0; i < numSamples; ++i)
         {
+            
             // Velocidad del cambio de pitch
             lfoPhase += lfoSpeed / currentSampleRate;  
             if (lfoPhase >= 1.0f) 

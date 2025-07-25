@@ -59,9 +59,32 @@ void SynthVoice::renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int s
 {
     jassert(isPrepared);
 
+    // Velocidad del cambio de pitch
+    lfoPhase += lfoSpeed / currentSampleRate;
+    if (lfoPhase >= 1.0f)
+        lfoPhase -= 1.0f;
+
+    // 1. Actualizar LFO (sinusoidal)
+    lfoPhase += lfoFreq / currentSampleRate;
+    if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
+
+    // 2. Calcular frecuencia actual
+    const float lfoValue = std::sin(2.0f * juce::MathConstants<float>::pi * lfoPhase);
+    const float currentFreq = minFreq + (maxFreq - minFreq) * (0.5f + 0.5f * lfoValue);
+
+    // 3. Generar onda cuadrada
+    squarePhase += currentFreq / currentSampleRate;
+    if (squarePhase >= 1.0f) squarePhase -= 1.0f;
+
+
+    osc.setFrequency(currentFreq*2000);
+
     juce::dsp::AudioBlock<float> audioBlock{ outputBuffer };
     osc.process(juce::dsp::ProcessContextReplacing<float>(audioBlock));
     gain.process(juce::dsp::ProcessContextReplacing<float>(audioBlock));
+
+    
+    
 
     adsr.applyEnvelopeToBuffer(outputBuffer, startSample, numSamples);
 }
