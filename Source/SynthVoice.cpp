@@ -76,8 +76,9 @@ void SynthVoice::renderNextBlock(juce::AudioBuffer< float >& outputBuffer, int s
     squarePhase += currentFreq / currentSampleRate;
     if (squarePhase >= 1.0f) squarePhase -= 1.0f;
 
+    //float freq = osc.getFrequency();
 
-    osc.setFrequency(currentFreq*2000);
+    osc.setFrequency(currentFreq);
 
     juce::dsp::AudioBlock<float> audioBlock{ outputBuffer };
     osc.process(juce::dsp::ProcessContextReplacing<float>(audioBlock));
